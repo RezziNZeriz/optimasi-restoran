@@ -1,0 +1,15 @@
+body {
+    background-color: #f8f9fa;
+  }
+  
+  .nav-link.active {
+    background-color: #e9ecef;
+    font-weight: bold;
+    border-radius: 0.5rem;
+  }
+  
+  .tab-button.active {
+    font-weight: bold;
+    border-bottom: 2px solid #000;
+  }
+  

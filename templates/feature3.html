@@ -1,0 +1,87 @@
+<div class="container py-4">
+    <h2 class="mb-4">💸 Optimasi Pendapatan Harian</h2>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form id="feature3-form" enctype="multipart/form-data" class="mb-4">
+        <h5 class="mb-2">📋 Input Data Manual</h5>
+        <table class="table table-bordered" id="data-table">
+            <thead>
+                <tr>
+                    <th>Harga Jual (Rp)</th>
+                    <th>Jumlah Terjual</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td><input type="number" name="harga_jual[]" class="form-control" value="{{ row.harga_jual }}"></td>
+                    <td><input type="number" name="jumlah_terjual[]" class="form-control" value="{{ row.jumlah_terjual }}"></td>
+                    <td><button type="button" class="btn btn-danger btn-sm hapus-baris">🗑️</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-secondary btn-sm mb-3" id="tambah-baris">➕ Tambah Baris</button>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">🔍 Proses Optimasi</button>
+        </div>
+    </form>
+
+    {% if grafik %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">📈 Grafik Estimasi Pendapatan</h5>
+            <img src="data:image/png;base64,{{ grafik }}" class="img-fluid" alt="Grafik Pendapatan">
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">🧮 Model Regresi</h5>
+            <p><strong>Harga Jual:</strong> P(x) = {{ model_formula.P }}</p>
+            <p><strong>Jumlah Terjual:</strong> S(x) = {{ model_formula.S }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">📊 Total Estimasi Pendapatan</h5>
+            <p>Total Pendapatan (30 hari): <strong>Rp{{ total_pendapatan | round(2) }}</strong></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">📅 Tabel Estimasi Harian</h5>
+            <table class="table table-bordered">
+                <thead><tr><th>Hari ke-</th><th>Pendapatan (Rp)</th></tr></thead>
+                <tbody>
+                    {% for hari, pendapatan in pendapatan_harian %}
+                    <tr><td>{{ hari }}</td><td>{{ pendapatan | round(2) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function tambahBaris() {
+    const tbody = document.querySelector("#data-table tbody");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td><input type="number" name="harga_jual[]" class="form-control"></td>
+        <td><input type="number" name="jumlah_terjual[]" class="form-control"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="hapusBaris(this)">🗑️</button></td>
+    `;
+    tbody.appendChild(row);
+}
+function hapusBaris(btn) {
+    btn.closest("tr").remove();
+}
+</script>

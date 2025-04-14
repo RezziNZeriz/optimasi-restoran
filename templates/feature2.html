@@ -1,0 +1,107 @@
+<div class="container py-4">
+    <h2 class="mb-4">💰 Optimasi Strategi Harga Jual</h2>
+
+    {% if error %}
+    <div class="alert alert-danger">Terjadi kesalahan: {{ error }}</div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">📋 Input Data Produksi</h5>
+            <form id="feature2-form" enctype="multipart/form-data" class="mb-4">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="biaya_tetap" class="form-label">💸 Keuntungan Tetap per Unit (Rp)</label>
+                        <input type="number" step="any" name="biaya_tetap" id="biaya_tetap" class="form-control" value="{{ biaya_tetap or 5000 }}">
+                    </div>
+                </div>
+
+                <table class="table table-bordered" id="data-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Biaya Produksi (Rp)</th>
+                            <th>Jumlah Produksi Terjual</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            <td><input type="number" name="biaya_total[]" class="form-control" value="{{ row.biaya_total }}"></td>
+                            <td><input type="number" name="jumlah_terjual[]" class="form-control" value="{{ row.jumlah_terjual }}"></td>
+                            <td><button type="button" class="btn btn-danger btn-sm hapus-baris">🗑️</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <button type="button" class="btn btn-secondary btn-sm mb-3" id="tambah-baris">➕ Tambah Baris</button>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">🔍 Proses Strategi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if grafik %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">📊 Grafik Harga Jual Optimal</h5>
+            <img src="data:image/png;base64,{{ grafik }}" class="img-fluid" alt="Grafik Harga">
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">🧮 Model Regresi Rasional</h5>
+            <p>f(x) = {{ model_formula }}</p>
+            <p><strong>Harga Jual Hari ke-3:</strong>
+                {% if harga_manual is not none %}Rp{{ harga_manual | round(2) }}{% else %}-{% endif %}
+            </p>
+            <p><strong>Rata-rata Harga Jual:</strong>
+                {% if harga_rata_rata is not none %}Rp{{ harga_rata_rata | round(2) }}{% else %}-{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">📅 Prediksi Harian</h5>
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Hari ke-</th>
+                        <th>Harga Jual (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hari, harga in prediksi_harian %}
+                    <tr>
+                        <td>{{ hari }}</td>
+                        <td>{{ harga | round(2) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function tambahBaris() {
+        const tbody = document.querySelector("#data-table tbody");
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td><input type="number" name="biaya_total[]" class="form-control"></td>
+            <td><input type="number" name="jumlah_terjual[]" class="form-control"></td>
+            <td><button type="button" class="btn btn-danger btn-sm" onclick="hapusBaris(this)">🗑️</button></td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function hapusBaris(btn) {
+        btn.closest("tr").remove();
+    }
+</script>

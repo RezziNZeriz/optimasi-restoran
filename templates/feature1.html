@@ -1,0 +1,108 @@
+<div class="container py-4">
+  <h2 class="mb-4">📦 Prediksi Penggunaan Bahan Baku</h2>
+
+  {% if error %}
+  <div class="alert alert-danger">Terjadi kesalahan: {{ error }}</div>
+  {% endif %}
+
+  <form id="feature1-form" enctype="multipart/form-data" class="mb-4">
+      <div class="mb-4">
+          <h5 class="mb-2">📋 Input Data Manual</h5>
+          <table class="table table-bordered" id="data-table">
+              <thead>
+                  <tr>
+                      <th>Jumlah Pesanan</th>
+                      <th>Penggunaan Bahan Baku (kg)</th>
+                      <th>Aksi</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for row in data %}
+                  <tr>
+                      <td><input type="number" name="jumlah_pesanan[]" class="form-control" value="{{ row.jumlah_pesanan }}"></td>
+                      <td><input type="number" name="bahan_baku[]" class="form-control" step="any" value="{{ row.penggunaan_bahan_baku }}"></td>
+                      <td><button type="button" class="btn btn-danger btn-sm hapus-baris">🗑️</button></td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+          <button type="button" class="btn btn-secondary btn-sm" id="tambah-baris">➕ Tambah Baris</button>
+      </div>
+
+      <div class="mb-3">
+          <label for="x_test" class="form-label">Prediksi Manual Jumlah Pesanan</label>
+          <input class="form-control" type="number" name="x_test" id="x_test" value="{{ x_test }}">
+      </div>
+
+      <button type="submit" class="btn btn-primary">🔍 Proses Prediksi</button>
+  </form>
+
+  {% if grafik %}
+  <div class="card mb-4">
+      <div class="card-body">
+          <h5 class="card-title">📊 Grafik Model</h5>
+          <img src="data:image/png;base64,{{ grafik }}" alt="Grafik Model" class="img-fluid">
+      </div>
+  </div>
+  {% endif %}
+
+  {% if a %}
+  <div class="card mb-4">
+      <div class="card-body">
+          <h5 class="card-title">🧮 Fungsi Model Rasional</h5>
+          <p>Q(x) = ({{ a | round(2) }} × x + {{ b | round(2) }}) / (x + {{ c | round(2) }})</p>
+          <p>Untuk jumlah pesanan <strong>{{ x_test }}</strong>, prediksi penggunaan bahan baku: <strong>{{ q_test | round(2) }} kg</strong></p>
+      </div>
+  </div>
+  {% endif %}
+
+  {% if prediksi_harian %}
+  <div class="card mb-4">
+      <div class="card-body">
+          <h5 class="card-title">📅 Prediksi Harian</h5>
+          <table class="table table-bordered">
+              <thead>
+                  <tr>
+                      <th>Jumlah Pesanan</th>
+                      <th>Prediksi Bahan Baku (kg)</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for x, y in prediksi_harian %}
+                  <tr>
+                      <td>{{ x }}</td>
+                      <td>{{ y | round(2) }}</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
+  </div>
+  {% endif %}
+
+  {% if total_mingguan %}
+  <div class="card">
+      <div class="card-body">
+          <h5 class="card-title">📦 Estimasi Mingguan</h5>
+          <p>Total estimasi bahan baku selama seminggu berdasarkan data input: <strong>{{ total_mingguan | round(2) }} kg</strong></p>
+      </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function tambahBaris() {
+      const tbody = document.querySelector("#data-table tbody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+          <td><input type="number" name="jumlah_pesanan[]" class="form-control"></td>
+          <td><input type="number" name="bahan_baku[]" class="form-control" step="any"></td>
+          <td><button type="button" class="btn btn-danger btn-sm" onclick="hapusBaris(this)">🗑️</button></td>
+      `;
+      tbody.appendChild(row);
+  }
+
+  function hapusBaris(btn) {
+      btn.closest("tr").remove();
+  }
+</script>
