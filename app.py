@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.integrate import simpson
+from scipy.integrate import simpson, trapezoid
 from scipy.interpolate import make_interp_spline
 import matplotlib
 matplotlib.use('Agg')
@@ -240,32 +240,38 @@ def feature2():
 @app.route("/feature3", methods=["GET", "POST"])
 def feature3():
     error = None
-    grafik_base64 = ""
+    grafik_base64 = ""    
     model_formula = ""
-    total_pendapatan = 0
-    pendapatan_harian = []
-    
     default_data = {
-        'harga_jual': [15000, 16000, 15500, 16500, 15800],
+        'harga_jual': [15000, 16000, 17000, 16000, 15500],
         'jumlah_terjual': [100, 110, 105, 115, 108]
     }
     data_rows = []
+    model_harga = ""
+    model_jual = ""
+    hasil_integrasi_simpson = 0
+    hasil_integrasi_trapesium = 0
+    estimasi_harian = []
 
     try:
         if request.method == "POST":
             harga_list = request.form.getlist("harga_jual[]")
             jumlah_list = request.form.getlist("jumlah_terjual[]")
+
             data = []
             for h, j in zip(harga_list, jumlah_list):
                 if h.strip() and j.strip():
+                    h_val = float(h)
+                    j_val = float(j)
                     data.append({
-                        "harga_jual": float(h),
-                        "jumlah_terjual": float(j)
+                        "harga_jual": h_val,
+                        "jumlah_terjual": j_val
                     })
-            if not data:
-                raise ValueError("Data tidak boleh kosong.")
-            df = pd.DataFrame(data)
-            data_rows = data
+            if data:
+                df = pd.DataFrame(data)
+                data_rows = data
+            else:
+                raise ValueError("Data input kosong atau tidak valid.")
         else:
             df = pd.DataFrame(default_data)
             data_rows = df.to_dict("records")
@@ -274,25 +280,56 @@ def feature3():
         x_data = np.arange(1, len(df) + 1)
         P_data = df["harga_jual"].to_numpy()
         S_data = df["jumlah_terjual"].to_numpy()
+        Revenue_data = P_data * S_data
 
-        popt_P, _ = curve_fit(harga_model, x_data, P_data)
-        popt_S, _ = curve_fit(jual_model, x_data, S_data)
+        # Polinomial derajat 2 untuk harga dan penjualan
+        harga_poly = np.poly1d(np.polyfit(x_data, P_data, 2))
+        jual_poly = np.poly1d(np.polyfit(x_data, S_data, 2))
 
-        x_pred = np.linspace(1, len(x_data), 100)
-        P_fit = harga_model(x_pred, *popt_P)
-        S_fit = jual_model(x_pred, *popt_S)
+        def format_polinom(poly, var="x"):
+            terms = []
+            degree = poly.order
+            for i, coef in enumerate(poly.coefficients):
+                power = degree - i
+                if abs(coef) < 1e-6:
+                    continue  # Skip terms with ~0 coefficient
+                if power == 0:
+                    terms.append(f"{coef:.2f}")
+                elif power == 1:
+                    terms.append(f"{coef:.2f} {var}")
+                else:
+                    terms.append(f"{coef:.2f} {var}<sup>{power}</sup>")
+            return " + ".join(terms).replace("+ -", "- ")
+
+        model_harga = format_polinom(harga_poly, var="x")
+        model_jual = format_polinom(jual_poly, var="x")
+
+
+        x_pred = np.linspace(1, len(df), 100)
+        P_fit = harga_poly(x_pred)
+        S_fit = jual_poly(x_pred)
         Pendapatan_fit = P_fit * S_fit
-        Pendapatan_asli = P_data * S_data
 
-        total_pendapatan = simpson(Pendapatan_fit, x=x_pred)
+        hasil_integrasi_simpson = simpson(Pendapatan_fit, x=x_pred)
+        hasil_integrasi_trapesium = trapezoid(Pendapatan_fit, x=x_pred)
+
+        estimasi_harian = [(int(x), harga_poly(x), jual_poly(x), harga_poly(x) * jual_poly(x)) for x in x_data]
 
         fig, ax = plt.subplots()
-        ax.scatter(x_data, Pendapatan_asli, label="Data Asli", color="red")
-        ax.plot(x_data, P_data * S_data, color="green", label="Garis Data Asli")
-        ax.plot(x_pred, Pendapatan_fit, color="blue", label="Kurva Fitting Pendapatan")
-        ax.set_xlabel("Hari ke-")
+
+        # Interpolasi melengkung untuk data asli
+        x_smooth = np.linspace(x_data.min(), x_data.max(), 200)
+        spline_actual = make_interp_spline(x_data, Revenue_data)
+        revenue_smooth = spline_actual(x_smooth)
+
+        # Plot pendapatan asli (garis hijau melengkung) dan fitting (merah)
+        ax.plot(x_smooth, revenue_smooth, label='Pendapatan Aktual (Interpolasi)', color='green')
+        ax.plot(x_pred, Pendapatan_fit, label='Kurva Fitting Pendapatan', color='red')
+        # Tambahkan titik-titik data asli (titik biru)
+        ax.scatter(x_data, Revenue_data, label='Titik Data Asli', color='blue', zorder=5)
+        ax.set_xlabel("Hari ke-x")
         ax.set_ylabel("Pendapatan (Rp)")
-        ax.set_title("Optimasi Pendapatan Harian")
+        ax.set_title("Estimasi Pendapatan Harian")
         ax.legend()
         ax.grid(True)
 
@@ -300,36 +337,30 @@ def feature3():
         plt.savefig(buf, format="png")
         plt.close(fig)
         buf.seek(0)
-        grafik_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-
-        model_formula = {
-            "P": f"{popt_P[0]:.2f} + {popt_P[1]:.2f} * sin({popt_P[2]:.2f} * x)",
-            "S": f"{popt_S[0]:.2f} + {popt_S[1]:.2f} * cos({popt_S[2]:.2f} * x)"
-        }
-
-        for x in [5, 10, 15, 20, 25, 30]:
-            p = harga_model(x, *popt_P)
-            s = jual_model(x, *popt_S)
-            pendapatan_harian.append((x, p * s))
+        grafik_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
 
         return render_template("feature3.html",
             grafik=grafik_base64,
-            model_formula=model_formula,
-            total_pendapatan=total_pendapatan,
-            pendapatan_harian=pendapatan_harian,
-            data=data_rows,
-            error=error
+            model_harga=model_harga,
+            model_jual=model_jual,
+            hasil_integrasi_simpson=hasil_integrasi_simpson,
+            hasil_integrasi_trapesium=hasil_integrasi_trapesium,
+            estimasi_harian=estimasi_harian,
+            error=error,
+            data=data_rows
         )
-    
+
     except Exception as e:
         error = str(e)
         return render_template("feature3.html",
             grafik=None,
-            model_formula="",
-            total_pendapatan=0,
-            pendapatan_harian=[],
-            data=data_rows if data_rows else default_data,
-            error=error
+            model_harga="",
+            model_jual="",
+            hasil_integrasi_simpson=0,
+            hasil_integrasi_trapesium=0,
+            estimasi_harian=[],
+            error=error,
+            data=data_rows if data_rows else default_data
         )
     
 @app.route("/feature4", methods=["GET", "POST"])

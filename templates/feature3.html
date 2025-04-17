@@ -34,34 +34,47 @@
     {% if grafik %}
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">📈 Grafik Estimasi Pendapatan</h5>
+            <h5 class="card-title">📊 Grafik Pendapatan Harian</h5>
             <img src="data:image/png;base64,{{ grafik }}" class="img-fluid" alt="Grafik Pendapatan">
         </div>
     </div>
 
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">🧮 Model Regresi</h5>
-            <p><strong>Harga Jual:</strong> P(x) = {{ model_formula.P }}</p>
-            <p><strong>Jumlah Terjual:</strong> S(x) = {{ model_formula.S }}</p>
+            <h5 class="card-title">📈 Model Regresi Polinomial</h5>
+            <p><strong>Model Harga Jual (P(x))</strong><br>P(x) = {{ model_harga | safe }}</p>
+            <p><strong>Model Jumlah Terjual (S(x))</strong><br>S(x) = {{ model_jual | safe }}</p>
+        </div>
+    </div>    
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">🧮 Estimasi Total Pendapatan</h5>
+            <p><strong>Metode Simpson</strong>: Rp{{ hasil_integrasi_simpson | round(2) }}</p>
+            <p><strong>Metode Trapesium</strong>: Rp{{ hasil_integrasi_trapesium | round(2) }}</p>
         </div>
     </div>
 
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">📊 Total Estimasi Pendapatan</h5>
-            <p>Total Pendapatan (30 hari): <strong>Rp{{ total_pendapatan | round(2) }}</strong></p>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">📅 Tabel Estimasi Harian</h5>
+            <h5 class="card-title">📅 Estimasi Harian</h5>
             <table class="table table-bordered">
-                <thead><tr><th>Hari ke-</th><th>Pendapatan (Rp)</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Hari ke-</th>
+                        <th>Harga Jual</th>
+                        <th>Jumlah Terjual</th>
+                        <th>Pendapatan</th>
+                    </tr>
+                </thead>
                 <tbody>
-                    {% for hari, pendapatan in pendapatan_harian %}
-                    <tr><td>{{ hari }}</td><td>{{ pendapatan | round(2) }}</td></tr>
+                    {% for hari, harga, jumlah, pendapatan in estimasi_harian %}
+                    <tr>
+                        <td>{{ hari }}</td>
+                        <td>{{ harga | round(2) }}</td>
+                        <td>{{ jumlah | round(2) }}</td>
+                        <td>{{ pendapatan | round(2) }}</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -71,17 +84,18 @@
 </div>
 
 <script>
-function tambahBaris() {
-    const tbody = document.querySelector("#data-table tbody");
-    const row = document.createElement("tr");
-    row.innerHTML = `
-        <td><input type="number" name="harga_jual[]" class="form-control"></td>
-        <td><input type="number" name="jumlah_terjual[]" class="form-control"></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="hapusBaris(this)">🗑️</button></td>
-    `;
-    tbody.appendChild(row);
-}
-function hapusBaris(btn) {
-    btn.closest("tr").remove();
-}
+    function tambahBaris() {
+        const tbody = document.querySelector("#data-table tbody");
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td><input type="number" name="harga_jual[]" class="form-control"></td>
+            <td><input type="number" name="jumlah_terjual[]" class="form-control"></td>
+            <td><button type="button" class="btn btn-danger btn-sm" onclick="hapusBaris(this)">🗑️</button></td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function hapusBaris(btn) {
+        btn.closest("tr").remove();
+    }
 </script>
